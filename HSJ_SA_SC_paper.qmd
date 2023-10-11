@@ -1,0 +1,474 @@
+---
+#title: "Soft_calibration_paper"
+#author: "Alejandro Sánchez Gómez"
+format:
+  docx:
+    reference-doc: HSJ_Template.dotx
+    fig-align: center
+#   html: 
+#    toc: true
+#    toc-depth: 4
+#    editor: visual
+bibliography: HSJ_SA_SC_bib.bib
+tbl-cap-location: top
+---
+
+```{r}
+#| echo: false
+#| eval: true
+#| warning: false
+#| output: false
+
+library(readr)
+library(tidyverse)
+library(gt)
+```
+
+## Using sensitivity analysis and soft calibration of geological regions to improve the representation of hydrological processes in a SWAT+ model.
+
+##### Alejandro Sánchez-Gómez\*^1^, Christoph Schürz^2^, Katrin Bieger^3^, Silvia Martínez-Pérez^1^, Eugenio Molina-Navarro^1^.
+
+####### ^1^ Department of Geology, Geography and Environment, University of Alcalá. Carretera Madrid-Barcelona Km. 33,6. 28805. Alcalá de Henares, Spain.
+
+####### ^2^ Department of Computational Landscape Ecology, Helmholtz Centre for Environmental Research. Permoserstrasse 15, 04318 Leipzig. Germany
+
+####### ^3^ Department of Ecoscience, Aarhus University. C.F. Mollers Allé 3, building 1130, 424, 8000, Aarhus C. Denmark
+
+
+
+### Abstract
+
+*Study region: *
+
+The Upper Tagus River basin is the most relevant part of the Tagus basin, the most populated on the Iberian Peninsula. Its geological heterogeneity results in differences in the hydrological processes across the basin.
+
+*Study focus:* 
+
+A detailed SWAT+ model was built and afterwards an innovative and comprehensive calibration process was developed, addressing separately the calibration of four geological regions with the aim of realistically simulating the hydrological processes in the catchment. The sensitivity of ten parameters on two key hydrological indices, the runoff coefficient and the groundwater contribution, was evaluated. Then, parameters were optimized through a soft calibration procedure to achieve an accurate simulation of these variables on each region.
+
+*New hydrological insights for the region: *
+
+Sensitivity analysis and soft calibration revealed differences on hydrological processes across the basin. Some parameters were generally identified as the most sensitive (*cn2*, *awc* and *soil_z* for runoff coefficient and *cn2* and *perco* for groundwater contribution), but differences among regions were found. Thus, when performing the soft calibration, parameter constraints varied among regions. After three iterations, the target values of the analysed variables were achieved in all the regions, which additionally improved the streamflow simulation performance. This work highlights the importance of calibrating separately geologically heterogeneous regions and the increase in model reliability achieved through the applied approach, providing a good starting point for a hard calibration.
+
+Key words: *Sensitivity analysis*; *Soft calibration*; *SWAT+*; *Geological heterogeneity*; *Catchment modelling*; *Water balance*.
+
+
+
+### 1. Introduction
+
+Constructing and calibrating hydrological models for large, complex river basins is very challenging. Representing all relevant hydrological processes in a basin realistically is essential, particularly if the model is used to support management decisions or to evaluate climate or land use scenarios [@moriasi_hydrologic_2015; @krysanova_how_2018; @sanchez-gomez_streamflow_2023], since model projections that are based on an incorrect representation of processes can lead to faulty conclusions.
+
+Among the numerous catchment scale models available, the Soil and Water Assessment Tool (SWAT) is the most widely used [@fu_review_2019]. It is able to simulate hydrological, erosion, management, agricultural and pollution processes on a continuous scale [@arnold_swat_2012]. SWAT+, the latest version of SWAT, includes several improvements, such as the spatial configuration and connections, the aggregation of input and output files, or the possibility to schedule management operations (reservoirs, crops, water management, etc.) through decision tables [@bieger_introduction_2017; @arnold_use_2018]. These modifications reinforce the model as a powerful tool to aid in the management of basins, both in natural regimes and in regimes modified by human activities.
+
+
+Calibration is a particularly challenging task in models like SWAT+ that have a relatively high number of parameters and physical processes that need to be optimized. Automatic calibration tools allow to obtain satisfactory values for performance metrics for the simulation of a certain variable (e.g., streamflow) using a limited number of parameters. However, it is well known that complex models are prone to equifinality, with unrealistic parameter values providing satisfactory metrics but not necessarily guaranteeing that a model is simulating the hydrological processes accurately [e.g., @pfannerstill_smart_2014; @acero_triana_beyond_2019]. It is therefore advisable to perform complex calibration procedures rather than using automated methods based on the capability of reproducing one variable. These procedures might include sensitivity analysis (SA) and soft (or process-based) calibration (SC) methods.
+
+SA investigates the response of a model (output) to variations of model inputs [@saltelli_global_2008]. As most SA methods can only be applied to scalar output variables, in hydrological modelling the analysed model outputs are aggregated, such as average annual sums of streamflow or evapotranspiration, signature measures [e.g., the runoff coefficient or the baseflow ratio; @euser_framework_2013], or performance metrics that compare a simulated output to respective observations. Thus, SA in hydrological modelling is a model diagnostics approach aiming at identifying the most relevant parameters that control a certain process (parameter ranking), or to identify parameters that do not have any effect (parameter screening) on the analysed output variable [e.g., @pianosi_simple_2015; @sarrazin_global_2016; @razavi_new_2016]. A large range of SA methods is available from the literature, which strongly differ in their scope (e.g., screen or rank model inputs, globally analyse the entire defined parameter space, or only assess local parameter sensitivities) and their computational costs [@pianosi_sensitivity_2016]. While simple parameter screening methods such as Morris' elementary effects test [@morris_factorial_1991] require only a few hundred model iterations, comprehensive global methods for parameter ranking such as the variance-based SA methods of Sobol' [@sobol_i_sensitivity_1993], FAST [@cukier_study_1973], or PAWN [@pianosi_simple_2015] can result in tens of thousands of model iterations.
+
+Knowledge gained from a SA can benefit subsequent steps in a model calibration. It can for example help to better understand input output relationships, or to remove non-influential parameters from the parameter set which will be analysed in subsequent (soft) calibration of a model. Due to the limited number of existing SWAT+ modelling studies in general, only few SWAT+ parameter sensitivity studies have been presented to date [e.g., @bailey_evaluating_2022; @schurz_analysis_2022; @andaryani_sensitivity_2022].
+
+SC aims to ensure that the hydrological processes in the model are being simulated satisfactorily and for the right reasons [@kirchner_getting_2006; @chawanda_mass_2020] (e.g., the amount of total streamflow is correct and the contribution of baseflow and quickflow is realistic for the catchment simulated). Development of tools supporting the collection of hydrological data [e.g., @sanchez-gomez_soft_nodate] and model calibration [e.g., @schurz_swatplusr_2019] allows to perform this additional calibration step.
+
+A SC can be guided by expert knowledge, but if soft data (e.g., annual averages of the water balance components or the relative contribution of the different flow components to streamflow) estimated from observations are available, the results might be more reliable. The goal of a SC is to constrain parameters that are most relevant for certain hydrological processes to ranges that simulate these processes properly, thus reducing equifinality issues. Different kinds of soft data have been previously used to perform SC: mass balance of main water balance and streamflow components (precipitation, evapotranspiration, quickflow, groundwater flow; e.g., @zhang_simultaneous_2011; @white_swat_2014; @chawanda_mass_2020], variables related to water quality and erosion processes [e.g., nutrients or sediment balances; @yen_role_2014; @arnold_hydrological_2015] or variables related to the variability and magnitude of streamflow [e.g., hydrological indices; @haas_soft_2021]. All these studies agree that a SC improves the capability of hydrological models to reproduce the basin processes and recommend including it in calibration procedures. However, despite these undeniable benefits, still few hydrological modelling studies incorporate SC in their calibration schemes, mostly opting for just an automatic hard calibration. In ungauged basins, SC has been also used to constrain parameters ranges and guide hydrological modelling processes [@yadav_regionalization_2007; @winsemius_calibration_2009]. The variables best suited for a SC differ among basins depending on climate or other characteristics.
+
+In heterogeneous basins, the differences in the hydrological processes between regions can be substantial Therefore, performing SA or SC for each of the regions with different hydrological behaviour is desirable These differences can be due to the heterogeneity of key factors such as climate, topography or lithology. When performing a calibration for the entire basin without considering this heterogeneity, there is a high chance of getting an unrealistic model, e.g., simulating groundwater in impervious areas [@sanchez-gomez_optimization_2022]. Despite this, many studies use a unique set of parameters values, regardless the catchment heterogeneity.
+
+In this study, a detailed hydrological model was constructed for the Upper Tagus River basin (UTRB). The Tagus River basin has more than 11 million inhabitants and supplies water for almost 14 million people, so it is of great socioeconomic importance. Thus, constructing a hydrological model for this basin that realistically represents the relevant hydrological processes is essential for guiding present and future management decisions, especially considering the severe impacts of climate change expected in Mediterranean regions [@ipcc_climate_2022]. Therefore, a comprehensive calibration process was designed for the UTRB with the aim of solving the above discussed shortcomings usually found in hydrological modelling studies.
+
+This article presents the first steps in this workflow, SWAT+ model construction, a SA, and a SC for four different geological regions within the UTRB. A high level of detail has been achieved in the construction of the model, especially in terms of land use and agricultural management, which will be of interest to other users. However, due to the lack of previous works evaluating the main parameters of the SWAT+ model in such a comprehensive way with the objective of realistically simulating the catchment characteristics and the land phase of the hydrological cycle, the main novelty of this work are the SA and SC carried out. The methodology performed and the obtained results can serve as a reference for other works and are expected to encourage the modelling community to put more focus on a realistic representation of all relevant hydrological processes in a catchment.
+
+
+### 2. Materials and methods
+
+### 2.1. Study area
+
+The Tagus River (1,092 km) is the longest on the Iberian Peninsula, and with an approximate area of 84,000 km², its basin is the third largest. Its upper and middle reaches are located in Spain, flowing then into the Atlantic Ocean in Portugal. Thus, its complex management is carried out jointly by the two countries [@cadc_declaracion_2023]. This study focuses on the Upper Tagus River basin, which is densely populated and therefore subject to significant pressures on its water resources. The UTRB extends over four different autonomous communities and nine provinces, but 99% of the basin area is located in the provinces Guadalajara, Toledo, Madrid, Cuenca and Ávila (33%, 27%, 23%, 11% and 5%, respectively).
+
+
+The UTRB is surrounded by three mountain ranges: the Central System in the north, the Iberian System in the west, and the Mountains of Toledo in the south. The elevation of the basin within these systems varies considerably, reaching 2,350 m.a.s.l. in some parts of the Central System, 1,900 m.a.s.l. in the Iberian System and 1,600 m.a.s.l. in the Mountains of Toledo. Steep slopes can be found mostly in the headwater regions, whereas the lower parts of the basin are flatter. 
+
+The UTRB has a continental Mediterranean climate, which varies depending on factors such as altitude, proximity to the ocean, or latitude. According to the K?ppen-Geiger climate classification, in the time period 1980-2010 [@chazarra_bernabe_mapas_2018], this region was characterized by temperate (C) and dry (B) climate. The mean precipitation for this period was around 540 mm, with values higher than 1,200 mm in the Central System, and values below 400 mm in the driest areas of Madrid and Castilla la Mancha. The mean temperature was around 13?C, with noticeable differences among the east (13?C), west (17?C) and north (9?C). 
+
+Natural vegetation and agricultural lands are the main land covers in the UTRB (49% and 43% of the area, respectively, SIOSE, 2014). Natural vegetation areas are made up of 50% of forests (evergreen, deciduous and mixed) and 50% of other kind of vegetation (pastures, shrublands, mixed vegetation, etc.). The dominant crops are cereals, followed by other crops such as sunflower or legumes. Around 5% of the agricultural land are irrigated crops. Urban and industrial areas cover around 5% of the UTRB, and other uses such as water bodies or barren lands are minority. Regarding soils, different types can be found in the UTRB, being calcaric cambisols (43%) majority, followed by other types such as dystric regosols (15%), vertic luvisols (9%), calcaric fluvisols (8%) or humic cambisols (7%) (HWSD, 2012). 
+
+The water resources in the UTRB are heavily regulated. There are more than 30 reservoirs, which supply water for around 7.5 million inhabitants. The UTRB is also subject to the largest water transfer in Spain, the Tagus-Segura water transfer which extracts on annual average around 330 hm? for irrigation purposes and to supply water to more than 3 million people in the southeast of Spain [@valerio_multi-objective_2023]. Around 20% of the Spanish and 30% of the Portuguese population [@lobanova_harmonizing_2017] depend on the water resources of the entire Tagus River basin, so a reliable hydrological model is essential for water resources management, especially considering the potential effects of climate change.
+
+More information about the basin characteristics can be found in previous stuedies [@sanchez-gomez_innovative_2022; @sanchez-gomez_soft_nodate], but a detailed description of basin geology is provided below due to its relevance for this study.
+
+The UTRB is characterized by a very heterogeneous geology (@fig-map), which results in large differences in the dominant hydrological processes within the basin. The Central System in the north and the Toledo Mountains in the south of the basin are composed of igneous and metamorphic rocks. Percolation in these areas is low and therefore, the groundwater contribution to streamflow is small, while quickflow is the dominant flow path. Towards the east of the basin, carbonate materials of the Iberian System configure relevant aquifers that provide a noticeable groundwater contribution to streamflow even during dry periods. The central part of the basin is composed of sedimentary deposits with varying hydrological properties, which originated from the surrounding mountain ranges. Tertiary rocks and Quaternary alluvial sediments with high and medium permeability are relevant aquifers and can be found across the entire basin, while detrital and evaporitic materials with low permeability are more common in sedimentary deposits from the Iberian System.
+
+
+![Lithology and permeability of the UTRB and subbasins used to characterize the geological regions (A), lithology-permeability classes used to define the geological regions (B), and model landscape units (LSUs) geological zonification (C). The permeability categories are very high (VH), high (H), medium (M), low (L) and very low (VL).](Data/Figs_PNG/map_basingeology.png){#fig-map}
+
+
+For this study, we defined four geological regions with different hydrological properties [@fig-map, Appendix A, @del_pozo_gomez_mapa_2009], namely: i) an impervious region, with metamorphic and igneous rocks with low and very low permeability (IMP); ii) a carbonate region composed of carbonate rocks with mainly high and medium permeability (CRB); iii) a detrital region composed of Tertiary sedimentary rocks and Quaternary sediments with high and medium permeability (DTH); and iv) a detrital region with detrital and evaporitic materials with low permeability (i.e., marls, gypsum) (DTL). In addition to the heterogeneity in the lithology, climate variability has an important impact on the hydrological processes. In consequence, there can be relevant differences in the hydrological processes between some subbasins of the UTRB with similar lithology if they are located in areas with different climate.
+
+#### 2.2. Model setup and parameterization
+
+The SWAT+ model for the UTRB was constructed using QSWAT+ [version 2.3.3, @chris_qgis_2018] and SWAT+ Editor [version 2.2, @usda-ars_swat_2020]. Considering the large area of the UTRB (33,850 km²), a balance had to be found between the level of detail of the model and its complexity to keep the computational requirements reasonable.
+
+For the watershed delineation, a 25 m resolution DEM from the Spanish National Geographic Institute [@ign_centro_2010] and a burn in layer with the rivers of the UTRB with a length greater than 25 x 25 km [@cht_confederacion_2022] were used. Thresholds values of 14 and 140 km² were selected for the channel and stream delineation, respectively. With these thresholds, the main river network of the UTRB is properly represented by the created channels. The main outlet of the UTRB (@fig-map) was placed at the Talavera de la Reina gauging station (Toledo province), and 11 additional outlets were defined at other gauging stations to be able to extract flow simulations and compare them with records. Six subbasins had an area smaller than 10% of the average subbasins area and four of them were merged with their respective downstream subbasins, whereas the remaining two had a user-defined outlet and could therefore not be merged. Finally, the most relevant reservoirs were identified from a shapefile with all reservoirs within the Tagus River basin [@cht_confederacion_2022]. The watershed delineation resulted in a model setup with 126 subbasins, 1,450 landscape units (LSUs), 1,286 channels and 31 reservoirs.
+
+For the HRUs definition, a soil map with a resolution of 1 km was obtained from the Harmonized World Soil Database [@fao_harmonized_2012] and resampled to 250 m to match the resolution of the land use map. A table that adapts the soil properties in the HWSD to those required by SWAT+ successfully used in previous works [@lopez-ballesteros_assessing_2019] was used. Three slope bands were defined according to the FAO criteria [@fao_framework_1976]: 0-8 %, 8-30% and greater than 30%, and automatically calculated from the DEM. For the land use data, the Spanish Land Use Information System [@ign_sistema_2014], which provides detailed information about the land covers at autonomous community level, was converted to a raster and merged with a raster of the irrigated crops extracted from the CORINE Land Cover dataset [CLC, @eea_corine_2012].
+
+In the land use lookup table, all the land uses except rainfed crops were assigned the same SWAT+ land use in all the provinces, whereas a different land use from the SWAT+ database was assigned to rainfed agricultural lands in each of the five mor relevant provinces. For the remaining provinces, the same code as for the closest main province was used.
+
+After the initial HRU creation, the rainfed crop?s HRUs were split into several HRUs to introduce the predominant arable crops at province level and to implement rotations (including fallow). The predominant crops were defined based on to the Surface and Production National Survey [@mapa_encuesta_2019]. Cereals (wheat and barley) dominated in all provinces followed by industrial crops (sunflower) or legumes depending on the province. These crops were introduced in their corresponding proportion within each province. In this way, a representative agricultural land cover was achieved in the entire basin, including the irrigated crops as a different land use. To reduce the final number of HRUs, the option of filtering HRUs by land use, soil or slope was used. This option allows for excluding HRUs with minor land uses, soil types or slopes, redistributing the area of the eliminated HRUs to those retained. The thresholds were established as a percentage of the landscape unit area, using a value of 10% for land use, and 15% for soil type and slope. The final HRU creation resulted in 22,089 HRUs.
+
+Subsequently, crop rotations and management schedules were defined for the arable crops [@tbl-plants]. The management operations were the same for all crops, but the timing and the amounts of fertilizer applied varied. For the cereals rotation, three different management schedules were defined in the file *management.sch* to allow having at the same time the three different states of the rotation across the basin and three different plant communities were defined in *plant.ini*. The rotation for the other crops is simpler, as it is repeated every year. However, a plant community was created for each crop to ensure proper growth of the plants. Finally, the file *landuse.lum* was modified to connect each land use with its corresponding plant community and management schedule. The implemented rotations and management practices were initially based on the Spanish practical guide of rational fertilization [@mapa_guipractica_2009] and further confirmed after interviews with local farmers, and an assessment of the biomass and water balance was performed for selected HRUs of each of the agricultural land uses to ensure that the plants and management schedules were implemented correctly (i.e., biomass and yield outputs matched with expected values).
+
++------------------------+------------------+---------------------+----------------------------------------------------------------------------------------+-------------------------+--------------------------------------------------------------+
+| # Crops                | # SWAT+ land use | # Plants introduced | # Management schedules                                                                 | # Duration              | # Operations included                                        |
+|                        |                  |                     |                                                                                        |                         |                                                              |
+| Cereals                | WWHT, BARL, ALFA | Wheat, barley       | Wheat-barley-fallow rotation Barley-fallow-wheat rotation Fallow-wheat-barley rotation | 3 years 3 years 3 years | Tillage, fertilize (N and P), plant, harvest and kill, skip. |
++------------------------+------------------+---------------------+----------------------------------------------------------------------------------------+-------------------------+--------------------------------------------------------------+
+| Irrigated crops        | AGRR             | Corn                | Intensive corn                                                                         | 1 year                  | Tillage, fertilize (N and P), plant, harvest and kill.       |
++------------------------+------------------+---------------------+----------------------------------------------------------------------------------------+-------------------------+--------------------------------------------------------------+
+| Industrial and legumes | SUNF, FPEA       | Sunflower and peas  | Sunflower-peas rotation                                                                | 1 year                  | Tillage, fertilize (N and P), plant, harvest and kill.       |
++------------------------+------------------+---------------------+----------------------------------------------------------------------------------------+-------------------------+--------------------------------------------------------------+
+
+: *Crop Rotations and Management Operations Implemented in Agricultural HRUs.* {#tbl-plants}
+
+In addition, several changes to the model configuration and parameterization were made based on the experience of the group using SWAT+.
+
+First, the *aquifer.aqu* and *aquifer.con* files were edited. The deep aquifer was removed from the model (updating also the *object.cnt* file) and the *rchg_dp* parameter was changed to 0, to avoid loss of water from the shallow aquifers. The *revap_min* parameter was set to 0, as this parameter triggered high evaporation of water from the shallow aquifers, reducing the groundwater flow. The *dep_bot* parameter was changed from 10 to 20, increasing the thickness and thus the storage capacity of the aquifers. Finally, the aquifer connectivity defined in the *aquifer.con* file was edited to connect each aquifer to the most downstream channel in the corresponding subbasin instead of the most upstream channel in the next subbasin, which is the default connectivity defined by the versions of the interfaces used in this study.
+
+Some changes were also made in the *plants.plt* and *plant.ini* files. The values for some parameters (e.g., *ext_co*, *bm_tree_max*) in the *plants.plt* file were out of range for a few of the land uses used in the setup of the UTRB. One of them was the land use chosen for mixed vegetation, i.e., MIGS. According to the CLC, the main land covers within the MIGS land use were grasses, scrubland and holm oak forests, so the parameters that were out of range for MIGS were replaced using the parameter values for RNGE, RNGB and OAK. In addition, by default, there is no plant initiated in the *plant.ini* file for MIGS, so this file was also adapted. The parameters for the barren land use (BSVG in the latest SWAT+ versions) were also out of range, so they were replaced by those from the former barren use (BARR) from previous versions of the *plants.plt* file.
+
+The *hydrology.hyd* file was edited to establish a representative runoff and leaching potential at HRU level. The parameters *latq_co* and *cn3_swf* were set for each HRU based on the hydrologic soil group and the slope following recommendations from the SWAT+ model developers (J.G. Arnold personal communication) based on Thompson et al. [-@thompson_purpose_2020]. While a similar parameterization is recommended for *perco*, it was in this case considered more appropriate to set the values for this parameter based on the expert knowledge about the characteristics of the geological regions instead.
+
+The resulting configuration and parameterization of the model was considered the initial model used for comparison with the different SC iterations.
+
+Once the model was constructed, a weather generator adapted to the Spanish territory [@senent-aparicio_impacts_2021] was imported to generate solar radiation, relative humidity and wind speed, and a gridded weather dataset (precipitation and temperature, 5 x 5 km resolution) generated by the Spanish Meteorological Agency [AEMET, @garcia_serie_2017] and adapted to SWAT input format was downloaded from the SWAT website and imported into the model.
+
+#### 2.3. Definition and parameterization of the geological zones
+
+Previous studies have demonstrated the different hydrological behaviour of the geological zones in the UTRB and the importance of calibrating these regions individually to obtain a realistic model [@sanchez-gomez_optimization_2022; @sanchez-gomez_soft_nodate; cerkasova_assessing_2019]. For this zonal calibration, the first step is to identify the areas of the basin that belongs to the different geological regions. For this purpose, a raster layer with the lithology-permeability classes was created (@fig-map B) based on the permeability map from the Spanish Geological Survey [@del_pozo_gomez_mapa_2009], and a zonal histogram for the LSUs of the model was used to determine the dominant substrate for each LSU (@fig-map C). Seven LSUs had the same number of grid cells of two different substrates, and in these cases the hydrologically most relevant substrate was selected (IMP, CRB and DTL above DTH).
+
+Assuming that all the HRUs within a LSU have the same lithology, the same parameterization was used for all HRUs within a geological zone. Parameters expected to have a relevant influence on the water balance of the UTRB were selected for the SA and the SC. The selection was based on the authors expert knowledge and previous studies [@schurz_analysis_2022]. Groundwater parameters controlling flow within the aquifer were not used in this study, since the objective was to ensure that the model simulates the recharge accurately, while the aquifer behaviour and groundwater flow timing will be addressed in future studies. Channel routing parameters will be addressed in an upcoming hard calibration process. @tbl-parameters lists the parameters selected and the type and value of the changes performed.
+
+```{r}
+#| echo: false
+#| eval: false
+#| warning: false
+
+library(tibble)
+tibble(Parameter = c("esco", "epco","cn2","perco","latq_co","cn3_swf","awc","z","k","bd"), 
+        'Object type' = c(rep("hru", 6), rep("soil", 4)),
+        'Change type' = c(rep("Absolute value",2), rep("Percentage change", 1), "Absolute value", rep("Absolute change", 2), rep("Percentage change", 4)),
+        'Change value' = c("0 - 1", "0 - 1", "± 30%", "0 - 1", "± 0.5", "± 0.5", "± 60%", "± 50%", "-80% - 200%", "± 30%")) 
+```
+
++-----------+----------------------------------------------------+-------------------+----------------------+---------+
+| Parameter | Description                                        | Change type       | Initial Change value |         |
++===========+====================================================+===================+======================+=========+
+| esco      | Soil evaporation compensation factor               | Absolute value    | 0 - 1                |         |
++-----------+----------------------------------------------------+-------------------+----------------------+---------+
+| epco      | Plant uptake compensation factor                   | Absolute value    | 0 - 1                |         |
++-----------+----------------------------------------------------+-------------------+----------------------+---------+
+| cn2       | Curve number                                       | Percentage change | ± 30%               |         |
++-----------+----------------------------------------------------+-------------------+----------------------+---------+
+| cn3_swf   | Soil water factor for cn3                          | Absolute change   | ± 0.5               |         |
++-----------+----------------------------------------------------+-------------------+----------------------+---------+
+| latq_co   | Lateral flow coefficient                           | Absolute change   | ± 0.5               |         |
++-----------+----------------------------------------------------+-------------------+----------------------+---------+
+| awc       | Available water capacity of the soil layer (mm/mm) | Percent change    | ± 60%               |         |
++-----------+----------------------------------------------------+-------------------+----------------------+---------+
+| soil_k    | Saturated hydraulic conductivity (mm/hr)           | Percent change    | -80% - 200%          |         |
++-----------+----------------------------------------------------+-------------------+----------------------+---------+
+| soil_bd   | Moist bulk density (g/cm3)                         | Percent change    | ± 30%               |         |
++-----------+----------------------------------------------------+-------------------+----------------------+---------+
+| soil_z    | Depth from soil surface to bottom of layer (mm)    | Percent change    | ± 50%               |         |
++-----------+----------------------------------------------------+-------------------+----------------------+---------+
+| perco     | Percolation coefficient                            | Absolute value    | 0 - 1\*              |         |
++-----------+----------------------------------------------------+-------------------+----------------------+---------+
+
+: *Selected Parameters, Description, Type of Change and Ranges Used for the First SC Iteration.* {#tbl-parameters}
+
+\*The initial range of perco varied by geological region (IMP 0 - 0.4, CRB and DTH 0.2 - 1, DTL 0 - 0.7).
+
+For each of the four regions, these ten parameters were changed independently, but within the same initial range (except for *perco*). Therefore, a different combination of 40 parameter values was applied for each of the simulations. Absolute and percent change were used for parameters that vary by HRU (i.e., the soil parameters, *latq_co*, and *cn3_swf*). Absolute values were used for *esco* and *epco*, which by default do not vary by HRU and for *perco*, which was the same for all HRUs within a geological region.
+
+
+#### 2.4. Soft data obtention
+
+An assessment of the hydrological properties in different subbasins [@fig-map, Appendix A] of the UTRB was performed in a previous study [@sanchez-gomez_soft_nodate] to estimate two key hydrological variables for each of the geological zones: the runoff coefficient (RC) and the baseflow index. These variables provide information about the water balance, indicating the ratio of the precipitation volume that becomes streamflow (and therefore also the ratio that becomes evapotranspiration) and the relative contribution of groundwater to the streamflow (GC) (baseflow can also come from snow melt, but it is not common in the UTRB).
+
+These variables were estimated in 19 subbasins of the UTRB, considering at least three representative subbasins for each geological region, and additionally six subbasins with a mixed geology (Appendix A). The results of this assessment (except for the mixed subbasins) were used to guide the SA and SC processes. As reported by Sánchez-Gómez et al. [-@sanchez-gomez_soft_nodate], some of the selected subbasins are composed of more than one type of material (e.g., DTL region). Therefore, the target values for the RC and the GC differs from the estimated ones. @tbl-softdata_reg lists the values estimated for these two variables for each of the geological regions and the targeted ranges for the SC process.
+
+```{r}
+#| echo: false
+#| eval: false
+#| warning: false
+#| label: tbl-softdata_reg
+#| tbl-cap: Estimated and targeted values od runoff coefficient and baseflow index for the geological regions
+
+reslts_softdata <- read.csv("Data/csv_files/soft_data_results.csv") %>%
+  mutate(region = factor(region, levels = c("IMP", "CRB", "DTH", "DTL", "MIX"))) %>% 
+  subset(., region != "MIX") %>% 
+  group_by(region) %>% 
+  summarise(Rnoff_rt = 100*round(mean(Runoff_coef), 3), BFI_ind = 100*round(mean(BF_Index), 3)) %>% 
+  mutate(min_runofft = round(0.9*Rnoff_rt, 3), max_rnofft = round(1.1*Rnoff_rt, 3)) %>% 
+  cbind(Runoff_goal = c("25 - 35", "25 - 40", "4 - 10", "1 - 4"), bfi_goal = c("10 - 20", "30 - 60", "25 - 45", "10 - 20")) %>% 
+  select(., -c("min_runofft", "max_rnofft"))
+
+colnames(reslts_softdata) <- c("Region", "Estimated runoff coefficient (%)", "Estimated baseflow index (%)", "Targeted runoff coefficient (%)", "Targeted baseflow index (%)")
+
+gt(reslts_softdata, "Estimated and targeted values of runoff coefficient and baseflow index for the geological regions")
+
+```
+
++-------------+----------------------------------+------------------------------+---------------------------------+-----------------------------+
+| Region      | Estimated runoff coefficient (%) | Estimated baseflow index (%) | Targeted runoff coefficient (%) | Targeted baseflow index (%) |
++=============+==================================+==============================+=================================+=============================+
+| IMP         | 32.7                             | 22.3                         | 25 - 35                         | 10 - 20                     |
++-------------+----------------------------------+------------------------------+---------------------------------+-----------------------------+
+| CRB         | 40.0                             | 46.3                         | 25 - 40                         | 30 - 60                     |
++-------------+----------------------------------+------------------------------+---------------------------------+-----------------------------+
+| DTH         | 6.5                              | 33.5                         | 4 - 10                          | 25 - 45                     |
++-------------+----------------------------------+------------------------------+---------------------------------+-----------------------------+
+| DTL         | 4.0                              | 30.3                         | 1 - 4                           | 10 - 20                     |
++-------------+----------------------------------+------------------------------+---------------------------------+-----------------------------+
+
+: *Estimated and Targeted Values of Runoff Coefficient and Baseflow Index for the Geological Regions.* {#tbl-softdata_reg}
+
+The dominant hydrological processes can differ between subbasins with the same lithology due to differences in factors such as climate or topography As far as possible, the selection of subbasins was done considering this potential heterogeneity and ensuring that the lithology was the most important factor. However, the lack of gauging stations in some areas of the UTRB or the presence of elements altering the hydrological regime (mostly reservoirs) limited the number of suitable subbasins, and most of the selected subbasins were located in the headwaters of the UTRB (@fig-map), where steeper slopes and more humid and colder conditions favour a higher RC. Therefore, the targeted range of values for this variable was expanded to include lower values in some regions, especially in the IMP and CRB, where the heterogeneity among the selected subbasins is larger [@sanchez-gomez_soft_nodate].
+
+
+#### 2.5. Sensitivity analysis
+
+To estimate the sensitivity of the RC and the GC to changes in the selected SWAT+ model parameters we implemented the method Sobol' [@sobol_i_sensitivity_1993] employing the parameter sampling design proposed by Saltelli et al. [-@saltelli_making_2002] which requires $n * ( p + 2 )$ model evaluations, where n is the base sampling rate and p is the number of analysed parameters. In this study, a base sample of n = 1,000 was used which results in 12,000 model evaluations for the 10 selected SWAT+ model parameters (@tbl-parameters).
+
+The SA was performed in R. The SA study was set up using the R package *sensitivity* [@iooss_sensitivity_2022] and the function *sobolSalt*, which implements the parameter sampling design proposed by Saltelli et al. [-@saltelli_making_2002]. The sampled parameters, which are normalized between 0 and 1, were transposed to the parameter defined in @tbl-parameters.
+
+The simulations for the 12,000 parameter combinations were performed with the R package *SWATplusR* [@schurz_swatplusr_2019], extracting for each simulation the average annual values of precipitation, lateral runoff, surface runoff, and percolation for all 1,450 LSUs to calculate RC and GC.
+
+Based on the calculated RC and GC values we estimated the First order Sobol' sensitivity indices for each LSU and the selected model parameters. The calculated sensitivity indices were grouped based on the defined regions to identify differences in the model parameter importance for RC and GC among the regions.
+
+#### 2.6. Soft calibration process
+
+The soft calibration process included three iterations of 1,000 simulations each for the period 2010-2018 with a five-year warm-up period (2005-2009). The latin hypercube sampling (*LHS*) and *purrr* libraries [@carnell_lhs_2022; @wickham_purrr_2023] were used to create random combinations of the parameters normalized between 0 and 1, which were transposed to the parameter ranges defined in each of the SC iterations. The *SWATplusR* library [@schurz_swatplusr_2019] was used to perform the simulations and extract results. The parameter ranges (see Section 2.3) were adapted after the first and the second iteration based on the distribution of the average RC and GC for each geological region plotted against the parameter values, with the aim of reaching the target values presented in @tbl-softdata_reg in the third SC iteration.
+
+For the constraint of parameter ranges the adjustment of RC was prioritized, since this variable is essential for achieving a realistic representation of hydrological processes in the model. The parameters that were found to be most sensitive both in the SA and in the SC were restricted more stringently, while insensitive parameters were less or not restricted.
+
+#### 2.7. Results extraction and evaluation
+
+The RC and GC variables, calculated at average annual basis, were used to perform the SA and SC processes. The simulated RC was calculated as $(perc + surq + latq) /precip$, and the simulated GC as $perc / (perc + surq + latq)$. The output variables extracted at LSU level were precipitation, evapotranspiration, percolation, surface runoff, and lateral flow (*precip*, *et*, *perc*, *surq_gen* and *latq_gen*, in the *lsunit_wb.txt* file). Since groundwater outputs are not available at LSU level, percolation was used as an equivalent of groundwater flow. To ensure that this assumption is correct, the aquifer parameters were edited (see Section 2.2) to avoid the movement of water from the aquifer to the soils (*revap*) or to the deep aquifer (*seep*), and it was ensured that the warm-up period was long enough to reach a balance in the aquifer dynamics.
+
+In the case of the SA, for each simulation the average annual values of precipitation, lateral runoff, surface runoff, and percolation were returned for all 1,450 LSUs to calculate RC and GC. The First order Sobol' sensitivity indices were calculated for each LSU and the calculated sensitivity indices were subsequently grouped based on the defined regions.
+
+For the SC, the calculation of RC and GC was performed at geological region scale. The model variables were extracted at LSU level, but then aggregated considering the LSU area fractions within the geological region to obtain the water balance variables for the entire region. The RC and GC were calculated for the initial model and for each simulation for the three SC iterations to compare and discuss the effect that the SC iterations have on the simulation of these variables.
+
+In addition, the streamflow simulation performance at daily time step was compared among the initial model and the SC iterations. The aim was to assess if, besides achieving a realistic model in terms of water balance and streamflow components, the SC would already improve the streamflow simulation before performing a subsequent hard calibration. This was done for the 19 subbasins in Appendix A (@fig-map), which include the subbasins used in the SA and SC procedures and six additional ones with mixed lithology (MIX). The Nash-Sutcliffe efficiency (NSE), Root mean square error (RMSE), Coefficient of determination (R²) and percent bias (PBIAS) were calculated for the simulation period (2010-2018) for the initial model and for the 1,000 simulations of each SC iteration. Three subbasins lacked data at the beginning of the simulation period (Appendix A), so the metrics were calculated using the available data. The median and best value of each metric were calculated for each subbasin and SC iteration. Subsequently, the average median and best values of all subbasins within the same geological region were calculated.
+
+### 3. Results and discussion
+
+#### 3.1. Sensitivity analysis
+
+@fig-sensi shows the results of the Sobol' first order sensitivity indices for RC and GC. The calculation of the Sobol' indices was performed at LSU level. The results at LSU level were grouped based on the geological regions and boxplots were used to illustrate the distributions of Sobol' indices for each parameter and region.
+
+Overall, only a few model parameters had a strong impact on the calculation of RC and GC, while the effects of most parameters were insignificant (boxes close to the zero line) in all regions. The most relevant parameters identified in the SA were *cn2*, *awc*, and *soil_z* for the calculation of RC and *cn2* and *perco* for the calculation of GC.
+
+The parameter relevance for the calculation of RC was similar in the DTH and DTL regions, with large Sobol' indices for *cn2* and a lower but significant relevance of *awc* and *soil_z.* In the CRB and IMP regions, *awc* was identified as the most relevant parameter followed by *soil_z* and *cn2*. In the IMP region, the Sobol' indices for *latq_co* and *soil_bd* indicated a similar relevance of these two parameters as of *cn2.*
+
+The parameter *perco* was identified as the most relevant parameter for the calculation of GC in the regions CRB and DTH. This parameter was also relevant in the regions IMP and DTL, but to a lesser extent. Similar to RC, the parameter *cn2* was also relevant for the calculation of GC in all regions. The patterns in parameter importance in the IMP region differs from the other regions, with the largest median Sobol' index identified for the parameter *soil_bd* and a significant importance identified for the parameter *latq_co*.
+
+![First order Sobol' sensitivities of the Runoff coefficient (RC) and the Groundwater contribution (GC) to the analysed SWAT+ model parameters. The sensitivities for RC and GC were assessed in each LSU. The boxplots show the distributions of the calculated Sobol' indices for all LSUs in a respective region and for each parameter.](Data/Figs_PNG/sobol_fosi_regions_rc_gc.png){#fig-sensi}
+
+#### 3.2. Soft calibration
+
+@tbl-defwb presents some components of the water balance and the GC for the different regions as simulated by the initial model. Precipitation is an input and does not differ between the different iterations. The other variables (RC and GC) vary depending on the parameter values. The RC and GC values estimated by the initial model were outside the target ranges (@tbl-softdata_reg) for most of the regions. RC values were too high in the IMP and the detrital regions and low in the CRB region, which also means that actual evapotranspiration is not being accurately simulated. 
+
++--------------+--------------------+------------------------+------------------------------+
+| Region       | Precipitation (mm) | Runoff coefficient (%) | Groundwater contribution (%) |
++==============+====================+========================+==============================+
+| IMP          | 641                | 34.3                   | 5.8                          |
++--------------+--------------------+------------------------+------------------------------+
+| CRB          | 574                | 19.6                   | 6.0                          |
++--------------+--------------------+------------------------+------------------------------+
+| DTH          | 454                | 11.5                   | 7.9                          |
++--------------+--------------------+------------------------+------------------------------+
+| DTL          | 452                | 8.1                    | 6.6                          |
++--------------+--------------------+------------------------+------------------------------+
+
+: *Precipitation, runoff coefficient and groundwater contribution for the geological regions estimated by the initial model.* {#tbl-defwb}
+
+The GC values were very low in all regions, which might be due to the initial parameter values, which limit percolation. It was not expected that the initial simulation would realistically reproduce the hydrology of the different regions of the catchment, since a complex model like SWAT+ has many parameters, which need to be optimized through a calibration process. However, it is interesting to know how the model is reproducing these components of the water balance by default, and what potential room for improvement exists.
+
+@fig-par_crb_rc and @fig-par_crb_gc show, respectively, the values of RC and GC obtained for the CRB region for the 1,000 simulations of each iteration against the different parameter values, and the updated parameter ranges after the first and second iteration. The ranges of some sensitive parameters in this region (e.g., *awc*) were narrowed substantially, since the targeted RC was noticeably higher than the average RC simulated by the model (@fig-par_crb_rc). The parameter *perco* was constrained significantly to achieve the GC target value (@fig-par_crb_gc). Very high values of *perco* lead to an overestimation of GC, and therefore the highest values were excluded after the second iteration. Other parameters, such as *cn2* in this region, had to be constrained to an intermediate range to reach the targets for both RC and GC. Several parameters (e.g., *esco*, *epco*, *soil_k*) were not constrained in this region due to the absence of clear trends. The plots for the other regions can be found in Appendix B.
+
+![Scatter plots of runoff coefficient for the three iterations of the soft calibration and updated ranges after the first and second iteration. Red, green, and yellow lines indicate that the range was narrowed to achieve the RC target, the GC target, or both targets, respectively.](Data/Figs_PNG/crb_runoff_constr.png){#fig-par_crb_rc}
+
+![Scatter plots of groundwater contribution for the three iterations of the soft calibration and updated ranges after the first and second iteration. Red, green, and yellow lines indicate that the range was narrowed to achieve the RC target, the GC target, or both targets, respectively.](Data/Figs_PNG/crb_gwcont_constr.png){#fig-par_crb_gc}
+
+Which parameters should be constrained and how much is a subjective decision, but an approach that was found to work well in this study was to prioritize the adjustment of the RC, to narrow the ranges more substantially after the second iteration, and to focus on the most sensitive parameters. It can be observed that even with narrow ranges, some parameters (e.g., *awc* for RC, *perco* for GC, and *cn2* for both) still showed a noticeable sensitivity for the evaluated variables (@fig-par_crb_rc and @fig-par_crb_gc). The final goal was to reach the target values for these variables, while still allowing enough variation of the parameters to make a satisfactory subsequent hard calibration possible.
+
+The parameter ranges of *awc*, *cn2*, *perco*, *soil_bd*, and *soil_z* were narrowed substantially (@fig-parameters_evol) in all four regions. Other parameters were only severely constrained in some regions (e.g., *latq_co* was constrained to a narrow range for IMP, CRB and DTL regions, but not for DTH). Some parameters (e.g., *esco*, *epco*, *soil_k*) did not show clear trends, and therefore were not severely constrained (Figures 2, 3, 4 and 5). However, in some cases the parameters were still slightly constrained based on expert knowledge to achieve the target values of RC (e.g., *epco* and *esco* in CRB region).
+
+@fig-parameters_evol shows the parameters ranges in each region for the three iterations, which can be also an indicator of their importance for the hydrological behaviour in the regions.
+
+![Changes in parameter ranges during the soft calibration iterations for each region.](Data/Figs_PNG/parameters_evol_exp.png){#fig-parameters_evol}
+
+The final parameter ranges allowed to obtain realistic values of RC and GC differ between the geological regions, which confirms that in geologically heterogeneous basins, defining geological regions to address parameter optimization independently in each of them might lead to a more realistic representation of the basin characteristics and hydrological processes [@sanchez-gomez_optimization_2022].
+
+To assess the improvement achieved during the SC process regarding the simulation of the water balance in the different regions, the distribution (for the 1,000 simulations in each iteration) of the average value of RC and GC for the entire simulation period was compared in @fig-rc_evol and @fig-gc_evol, respectively.
+
+![Runoff coefficient distribution for the 1,000 simulations for each iteration in each region. Green dotted lines indicate for each region the target runoff coefficient range.](Data/Figs_PNG/wyld_evol_rounds_exp.png){#fig-rc_evol}
+
+![Groundwater contribution distribution for the 1,000 simulations for each iteration in each region. Green dotted lines indicate for each region the target groundwater contribution range.](Data/Figs_PNG/bsfl_evol_rounds_exp.png){#fig-gc_evol}
+
+After the first iteration, most of the simulations did not match the target values in any of the regions. The range of RC values was relatively wide in all regions and similar to the initial simulation, most of the values were too low in the CRB region, but too high in the detrital regions. The GC values were low in most of the simulations, even in the IMP or DTL regions. These results indicate that with the initial ranges of the parameters used for iteration 1, these two variables are not well represented in most of the simulations, which will make a realistic simulation of streamflow difficult to achieve.
+
+The ranges of RC and GC values were narrower in the second iteration and closer to the estimated values (@fig-rc_evol and @fig-gc_evol). The median RC values in the IMP, DTH, and DTL regions were within the target range (@tbl-softdata_reg), but some simulations were still outside the range. In the CRB region, about one third of the simulations were still outside the target range. The GC values were more evenly distributed after this iteration and reached more realistic values (@fig-gc_evol). However, the range of GC was still very wide in the CRB and DTH regions, and a considerable fraction of the simulations were still having very low values in the IMP and DTL regions.
+
+The more severe constraint of the parameter ranges after iteration 2 resulted in a more accurate distribution of the RC and GC values in all four regions. Most of the RC values were within the target ranges (@tbl-softdata_reg) and the median value was close to the target value. The range of values of GC after iteration 3 was wider and less accurate than for RC, but it was still noticeably better than after the second iteration. In the IMP region, values ranged from 2 to 24% with most of the simulations in the range 7-10%, which was slightly lower than the target range of 10-20%. However, an accurate estimation of GC in this region is not easy, since the geology is characterized as impervious, the hydrographs might be affected by snow melt processes, and it is a region with a noticeable climate variability. Therefore, the results obtained for this region can be considered satisfactory. The GC values in the CRB region ranged from 10 to 75% and the median was 30%. The targeted range of 30 to 60% was within this range, but less variation and a higher median value would be desirable. In the DTH region, the range of GC values is slightly larger than the target one, but the median value is close to the estimated value (@tbl-softdata_reg) and thus, the obtained results are appropriate (@fig-gc_evol). Similarly, the range of GC values in the DTL region is relatively wide, and some of the simulations predicted higher values than expected but can generally be considered representative of the region.
+
+Although the ranges of RC and GC values were still relatively wide after the third iteration (@fig-rc_evol and @fig-gc_evol), the SC process narrowed these ranges to more accurate and realistic values. Hydrological processes were therefore better represented after the SC process, providing a good starting point for a hard calibration process which might allow to obtain a statistically satisfactory model with a realistic representation of the water balance and the streamflow components.
+
+Soft data has been previously used to guide hard calibration approaches with models such as SWAT, MIKE-SHE or DRAINMOD, which resulted in more realistic simulation of the basin processes, thus providing more accurate simulations of baseflow, sediments and nutrient budgets, water balance, crop yields, etc. [e.g., @vazquez_rainfall-runoff_2010; @zhang_simultaneous_2011; @arnold_hydrological_2015; @thorp_drainmod-n_2009; @nair_importance_2011]. However, studies specifically addressing SC procedures are scarce. Chawanda et al. [-@chawanda_mass_2020] used SWAT+ with that purpose, performing a SC in a large area (2.179.400 km²) in the south of Africa based on a hydrological mass balance, with the aim of reducing computational costs and assessing plausible improvements in model performance. Similar to the work presented here, Chawanda et al. [-@chawanda_mass_2020] aimed at adjusting model parameters to match long-term average annual water balance components, thus guaranteeing a realistic simulation. They also subdivided the study area in calibration zones, but in their case these zones were subbasins grouped based on expert judgment (without further explanation) instead of geological regions, which might be more appropriate in areas with geological heterogeneity since this factor is not taken into account during SWAT+ model setup [@sanchez-gomez_optimization_2022]. Compared to Chawanda et al. [-@chawanda_mass_2020], our work addresses a SA ans uses a different set of parameters that might be appropriate in similar regions, in addition to describing in detail the semi-automatic procedure followed to constrain the different parameters ranges and showing its full results, i.e., the effect of each of the parameters on the simulation of RC and GC within the different regions. It provides SWAT+ modelleers with very useful guidance for incorporating SC in their studies and enhances our knowledge of the functioning of different parameters in SWAT+.
+
+#### 3.3. Discussion of parameter sensitivity and soft calibration results
+
+In line with the findings of many other authors [@molina-navarro_hydrologic_2014; @niraula_determining_2015; @acero_triana_beyond_2019; @schurz_analysis_2022], *cn2* was highly sensitive regarding the amount of streamflow and thus it also showed clear trends during SC and its range was restricted in most regions (Figures 2, 3, 4, Appendix B). One exception was the IMP region, possibly due to the initial restriction of *perco* values in this region, which resulted in RC already being within the estimated target in the default model (Tables 3, 4). This stresses the importance of constructing a model that takes the characteristics of the catchment into account [@davie_fundamentals_2008; @arnold_hydrological_2015; @sanchez-gomez_optimization_2022]. Both in the SA and the SC, *cn2* was also relevant for GC, which was expected since the curve number is related with the infiltration rate [@usda_urban_1986], and ultimately affects water percolation through the aquifer (which the initial model underestimates, Table 4). The lower relevance of *cn2* in the IMP region could also be due its topography with steeper slopes, which favour quickflow over groundwater flow, as discussed below.
+
+The higher sensitivity of *perco* for GC in regions with medium and high permeability (DTH and CRB) was consistent with the clearest trends and a narrower restriction of parameter ranges during SC (Figures 2, 3, 4, Appendix B). A lower sensitivity of this parameter in the lower permeability regions (IMP and DTL) might be conditioned by the initial restriction of the parameter range, but it also reflects the hydrogeological conditions in the catchment, which is not always the case in catchment modelling studies [@krysanova_how_2018; @acero_triana_beyond_2019]. Nevertheless, *perco* was still more sensitive than many other parameters in these regions (Figure 2), and consequently its ranges moved towards higher values in SC (Figure 4) to favour a larger groundwater contribution.
+
+The soil parameters *awc* and *soil_z* had a consistent sensitivity in all regions, being sensitive regarding RC. Consequently, they showed clear trends during SC and their ranges were restricted (Figures 2, 3, 4, Appendix B). This could be expected in a catchment with a Mediterranean climate, where every year soils suffer from water deficit during the dry period, when potential evapotranspiration is the highest, and the soil water storage capacity, which is influenced by these two parameters, becomes a key factor regulating the availability of water for evapotranspiration and, consequently, the runoff coefficient [@dingman_physical_1993]. In addition, during wet periods the plausible variability in this storage capacity also determines the magnitude of percolation, which ultimately might affect total streamflow. Nevertheless, the first process discussed seems to be more relevant in this catchment, since these parameters were not sensitive for GC (Figure 2). Besides, the soil database used in the model (HWSD, see Section 2.2) considers the same soil depth in the entire catchment, thus varying it differently for each geological region seems very convenient to guarantee achieving realistic results.
+
+Finally, two parameters were sensitive in the IMP region, *latq* and *soil_bd*. The sensitivity of *latq* in the IMP region is not surprising: percolation was limited with the initial parameterization to resemble the reality of the catchment, which results in quickflow (lateral + surface) becoming dominant. This is probably the reason why this parameter was also noticeably restricted during SC in the DTL region (Figure 4). Besides, the IMP region is a mountainous region, where slopes are steeper, and this additionally favours lateral flow [@davie_fundamentals_2008; @samper_estudio_2011; @marques_conceptualizing_2013; @sanchez-gomez_optimization_2022]. Regarding *soil_bd*, its larger sensitivity in the IMP region might be related again with the initial limitation of the range for *perco.* Percolation to the aquifer depends on the soil water content [@neitsch_soil_2011] and on the *perco* value, which adjusts soil moisture for percolation to occur [@usda-ars_swat_2020]. Since *perco* is limited in the IMP region, all the processes regarding water movement within the soil profile might become more sensitive, and that might be why *soil_bd*, which is related with soil porosity and has an impact on the volumetric water content [@neitsch_soil_2011] is more sensitive in this region than in the others. However, this definition suggests that *soil_bd* is also a relevant parameter controlling the water volume and thus it might have an impact on evapotranspiration and on eventual aquifer percolation, as discussed above. This is also reflected in SA results (where *soil_bd* also showed higher GC sensitivity than other parameters not only in the IMP region) but especially in the SC results (Figure 4).
+
+#### 3.4. Evaluation of simulated streamflow
+
+@fig-stre_perf_f presents the model performance metrics for streamflow for the initial model and after every SC iteration. The difference in the magnitude of NSE values makes it difficult to see the differences between the iterations. Thus, another plot for this metric excluding the large negative values can be found in Appendix C, and the distribution of values for each metric and iteration can be found in Appendix D.
+
+![Statistical evaluation of the streamflow simulations in the different geological regions in the initial model and the SC iterations (mean of the median and best values obtained for the representative subbasins).](Data/Figs_PNG/streamflow_performance_exp.png){#fig-stre_perf_f}
+
+The performance metrics, particularly PBIAS and RMSE, were improved by the SC. These metrics quantify the error in the simulated streamflow quantity, while R² or NSE focus on the correlation and the capacity to reproduce trends [@moriasi_hydrologic_2015-1]. Since one of the aims of the SC was to achieve a realistic amount of streamflow, finding a larger improvement in PBIAS and RMSE was somewhat expected.
+
+The simulation using the initial model, despite not being realistic (especially regarding GC, Section 2.4), yielded a good PBIAS for the CRB region (@fig-stre_perf_f), which again reveals the need of assessing that the hydrological processes are being properly represented and not only relying on metrics. The PBIAS values for the remaining three regions were unsatisfactory as well as the other metrics in all four regions, especially in the DTH, DTL, and MIX regions.
+
+The first iteration of the SC generally improved the streamflow simulation in all regions, especially looking at the best simulations (@fig-stre_perf_f, dashed lines). Some metrics already yielded satisfactory best values for hard calibration standards in some regions (R² in IMP and CRB, NSE in IMP and PBIAS in every region except for MIX). The median values, however, barely improved, or were even worse (@fig-stre_perf_f, solid lines). The use of the entire range of parameter values (except for *perco*) could explain both the unsatisfactory median values and the satisfactory best values for some regions, as a diverse and large number of parameter sets was used for iteration 1.
+
+After iteration 2, it was the mean of the median values which had improved most for the different metrics and in most of the regions (@fig-stre_perf_f). This result could be expected at least for the error-based metrics, since this iteration yielded a narrower and more accurate range of RC values, but median NSE and R² values also improved (@fig-stre_perf_f, Appendix C). The improvement of the best values was small, but the metrics that were satisfactory after iteration 1 were still satisfactory after iteration 2.
+
+Iteration 3 reproduced RC and GC more accurately across the different regions (@fig-rc_evol and @fig-gc_evol). Thus, a better performance of the streamflow simulation was expected at least for PBIAS and RMSE. However, this was not always the case. Looking at median values, the simulation in the CRB and MIX regions were slightly worse in iteration 3 than in iteration 2 (@fig-stre_perf_f). The other regions remained similar or were slightly better. The best values of almost all the metrics worsened for all four regions (@fig-stre_perf_f), suggesting that the modeller should be cautious when narrowing ranges of parameters during a SC procedure, since too much restriction might eliminate parameter sets that simulate the catchment realistically and are statistically satisfactory too. In other words, trying to meet the SC variables can potentially compromise the streamflow simulation. Nevertheless, this work also proves that a SC optimizing only 10 parameters towards two annual soft indices, can result in an improvement of the daily streamflow simulation, sometimes enough to satisfy standards set for models after a hard calibration procedure [@moriasi_hydrologic_2015-1], and can therefore be an excellent starting point for a subsequent hard calibration process in which additional parameters can be incorporated. It is also relevant to highlight that @fig-stre_perf_f represents the mean value for all subbasins within the same geological region, which can be influenced by one subbasin with low model performance (e.g., Villarejo de Montalbán, Ventosa, Romanones, Priego Trabaque; Appendix D), due to factors not considered in the definition of the regions for the SC. Looking individually at the metrics obtained for each of the subbasins (Appendix D), a continuous improvement of the streamflow simulation performance with soft calibration iterations can be observed.
+
+### 4. Conclusions
+
+Hydrological model users should use calibration methodologies that guarantee that their models realistically reproduce the hydrological processes within a catchment, and not only provide an accurate streamflow simulation. For this purpose, the key components of the water balance can be optimized through a soft calibration before performing a hard calibration, allowing to vary sensitive parameters within ranges that accurately reproduce water balance variables such as the runoff coefficient or the groundwater contribution to streamflow.
+
+This work presents a calibration methodology that includes a sensitivity analysis and a soft calibration for a detailed SWAT+ model built for the Upper Tagus River basin (Spain). This basin is characterized by noticeable lithological heterogeneity that should be considered during model calibration, and therefore, the SA and SC were performed for four different geological regions. The main objective was to identify the most sensitive parameters for calibrating the water balance and optimize them to reproduce the basin characteristics, including its lithological and thus hydrological heterogeneity, and realistically simulate the land phase of the hydrological cycle in the entire basin. The SA and SC performed in this study improved our understanding of SWAT+ parameters and provided key guidelines about how to modify these parameters to optimize variables such as the RC or GC. The SA and SC were performed for different geological zones, obtaining relevant regional differences in the sensitivity of parameters (in the case of SA) and in the realistic ranges of parameter values (in the case of SC). This highlights the importance of defining different calibration regions if the heterogeneity of a relevant factor such as geology is noticeable.
+
+Although sensitivity analyses are common in the hydrological modelling field, there is a lack of them using SWAT+ due to its novelty. Results suggest that *cn2*, *awc* and *soil_z* were the most sensitive for the calculation of RC, and *perco* and *cn2* for the calculation of GC. The behaviour of some parameters differed among regions, particularly in the IMP region, where two more parameters (*latq_co* and *soil_bd*) were also sensitive. These differences among parameters and across regions are related with the key hydrological processes in this basin, but might also be conditioned by the initial configuration of parameters. The methodology followed and the SA results obtained might be useful for prospective SWAT+ users.
+
+Our study demonstrates that SC improves the simulation of both the water balance and the streamflow. Optimizing the water balance for the different geological zones independently has led to different parameter values and to an accurate reproduction of the runoff coefficient and the groundwater contribution in the different regions, highlighting the importance of taking factors such as lithology into account in the calibration process if the model does not consider them in the setup process, as in the case of SWAT+. This process would guarantee in a subsequent hard calibration that the main variables of the water balance are realistically reproduced, which is especially important for obtaining a robust model capable of simulating reliable climate change scenarios. Therefore, a soft calibration is recommended before hard calibration, and this process should be guided by estimations based on real data. Three soft calibration iterations were done in this study, but evaluating the streamflow simulation at region scale, the improvement after the third iteration compared to the second was limited. However, focusing independently in the evaluated subbasins, a continuous improvement in the streamflow simulation performance can be observed.
+
+The model construction, sensitivity analysis and soft calibration presented in this study are the first steps of a comprehensive hydrological modelling workflow aimed at realistically simulating the complex hydrological processes in the Upper Tagus River basin. The next steps will focus on achieving a realistic groundwater simulation not only regarding quantity but also timing, the hard calibration of non regulated subbasins of the model, and the introduction of water resources management, e.g., reservoir outflows through decision tables, implementation of water withdrawals for irrigation and human consumption, and sewage treatment plants discharges.
+
+
+### Data Availability Statement
+
+The code used to parameterize the model, process the data and perform the presented work is available in the GitHub repository (Sánchez-Gómez & Schürz, 2023b, https://github.com/alejandrosgz/JOHRS_SA_SA_SWATPlus), where post-processed data is also available. The raw simulations performed during the sensitivity analysis and soft calibration are available in the Zenodo repository (Sánchez-Gómez & Schürz, 2023a, 10.5281/zenodo.8185916). 
+
+### Author contributions:
+
+**Conceptualization:** Sánchez-Gómez, A., Molina-Navarro, E., Bieger, K., Schürz, C. 
+**Data curation:** Sánchez-Gómez, A., Schürz, C. 
+**Formal analysis:** Sánchez-Gómez, A., Molina-Navarro, E., Bieger, K., Schürz, C, Martínez-Pérez, S. 
+**Funding acquisition:** Molina-Navarro, E., Martínez-Pérez, S. 
+**Methodology:** Sánchez-Gómez, A., Bieger, K., Molina-Navarro, E., Schürz, C. 
+**Software:** Sánchez-Gómez, A., Schürz, C. 
+**Visualization:** Sánchez-Gómez, A., Schürz, C. 
+**Writing -- original draft:** Sánchez-Gómez, A. 
+**Writing -- review & editing:** Bieger, K., Molina-Navarro, E., Schürz, C., Martínez-Pérez, S.
+
+### Acknowledgements
+
+Alejandro Sánchez-Gómez received support from the University of Alcalá (UAH) PhD Fellowships Program. This study was also supported by the Department of Education, Culture and Sports of Castilla-La Mancha (IMPACT Project, SBPLY/21/180225/000092), the Department of Economy, Business and Employment of Castilla-La Mancha (CEAGU, 2023/00029/001), and the Spanish Ministry of Science and Innovation (TwinTagus Project, PID2021-128126OA-I00). Katrin Bieger and Christoph Schürz were funded by the University of Alcalá Giner de los Ríos programme for visiting scholars. Authors want to express their gratitude to farmers Julio Sánchez, Pablo Juárez and Eugenio Molina senior for their counselling about agricultural management practices.
+
+### References
+
+::: {#refs}
+:::
+
+### Appendix A: Properties of the subbasins used to characterize the geological regions and to evaluate the streamflow simulation
+
++-----------------------------+------------+---------------+---------------------------------------------------+
+| ID and subbasin             | Region     | Area (sq. km) | Complete streamflow data availability (2010-2018) |
++=============================+============+===============+===================================================+
+| 1, Navaluenga               | IMP        | 699           | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 2, Matallana                | IMP        | 252           | No, from 2010-10-01                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 3, Villarejo de Montalban   | IMP        | 136           | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 4, Peralejo de las Truchas  | CRB        | 409           | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 5, Priego Escabas           | CRB        | 329           | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 6, Santa Maria del Val      | CRB        | 118           | No, from 2010-10-01                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 7, Jabalera                 | DTH        | 85            | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 8, Huete                    | DTH        | 359           | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 9, Torote                   | DTH        | 255           | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 10, La Pueblanueva          | DTH        | 222           | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 11, Ventosa                 | DTL        | 942           | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 12, La Peraleja             | DTL        | 261           | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 13, Villasequilla de Yepes  | DTL        | 1,321         | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 14, Valverde de los Arroyos | MIX        | 279           | No, from 2011-07-01                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 15, Malpica                 | MIX        | 412           | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 16, Taravillas              | MIX        | 184           | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 17, Romanones               | MIX        | 319           | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 18, Priego Trabraque        | MIX        | 389           | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+| 19, Bujalaro                | MIX        | 1,028         | Yes                                               |
++-----------------------------+------------+---------------+---------------------------------------------------+
+
+: *Names and Properties of the Subbasins Used to Characterize the Geological Regions and to Evaluate the Streamflow Simulation.* {#tbl-subb}
+
+### Appendix B: Parameter constraints for each region
+
+![Scatter plot of runoff coefficient against parameters' values in the three iterations of the soft calibration and parameters constrain for IMP region. Red lines indicate that the parameter was restricted considering RC and ETR, green line considering GC and yellow line both.](Data/Figs_PNG/imp_runoff_constr.png){#fig-par_imp_rc}
+
+![Groundwater contribution coefficient against parameters' values scatter plot in the three iterations of the soft calibration and parameters constrain for IMP region. Red lines indicate that the parameter was restricted considering RC and ETR, green line considering GC and yellow line both.](Data/Figs_PNG/imp_gwcont_constr.png){#fig-par_imp_gc}
+
+![Runoff coefficient against parameters' values scatter plot in the three iterations of the soft calibration and parameters constrain for CRB region. Red lines indicate that the parameter was restricted considering RC and ETR, green line considering GC and yellow line both.](Data/Figs_PNG/crb_runoff_constr.png){#fig-par_crbap_rc}
+
+![Groundwater contribution coefficient against parameters' values scatter plot in the three iterations of the soft calibration and parameters constrain for CRB region. Red lines indicate that the parameter was restricted considering RC and ETR, green line considering GC and yellow line both.](Data/Figs_PNG/crb_gwcont_constr.png){#fig-par_crbap_gc}
+
+![Runoff coefficient against parameters' values scatter plot in the three iterations of the soft calibration and parameters constrain for DTH region. Red lines indicate that the parameter was restricted considering RC and ETR, green line considering GC and yellow line both.](Data/Figs_PNG/dth_runoff_constr.png){#fig-par_dth_rc}
+
+![Groundwater contribution coefficient against parameters' values scatter plot in the three iterations of the soft calibration and parameters constrain for DTH region. Red lines indicate that the parameter was restricted considering RC and ETR, green line considering GC and yellow line both.](Data/Figs_PNG/dth_gwcont_constr.png){#fig-par_dth_gc}
+
+![Runoff coefficient against parameters' values scatter plot in the three iterations of the soft calibration and parameters constrain for DTL region. Red lines indicate that the parameter was restricted considering RC and ETR, green line considering GC and yellow line both.](Data/Figs_PNG/dtl_runoff_constr.png){#fig-par_dtl_rc}
+
+![Groundwater contribution coefficient against parameters' values scatter plot in the three iterations of the soft calibration and parameters constrain for DTL region. Red lines indicate that the parameter was restricted considering RC and ETR, green line considering GC and yellow line both.](Data/Figs_PNG/dtl_gwcont_constr.png){#fig-par_dtl_gc}
+
+### Appendix C: NSE values obtained for the initial model and each iteration  
+
+![Streamflow simulation performance: NSE obtained in the different geological regions across the initial model and the SC iterations (mean of the median and best values obtained for the representative subbasins).](Data/Figs_PNG/streamflow_nse_performance_exped.png){#fig-nse}
+
+### Appendix D: Distribution of model evaluation statistics for streamflow in the 19 selected subbasins
+
+![Distribution of model evaluation statistics for streamflow in the IMP subbasins.](Data/Figs_PNG/metrics_dist_imp.png)
+
+![Distribution of model evaluation statistics for streamflow in the CRB subbasins.](Data/Figs_PNG/metrics_dist_crb.png)
+
+![Distribution of model evaluation statistics for streamflow in the DTH subbasins.](Data/Figs_PNG/metrics_dist_dth.png)
+
+![Distribution of model evaluation statistics for streamflow in the DTL subbasins.](Data/Figs_PNG/metrics_dist_dtl.png)
+
+![Distribution of model evaluation statistics for streamflow in MIX subbasins.](Data/Figs_PNG/metrics_dist_mix1.png)
+
+![Distribution of model evaluation statistics for streamflow in subbasins with a mixed lithology.](Data/Figs_PNG/metrics_dist_mix2.png)

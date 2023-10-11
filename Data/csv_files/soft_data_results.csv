@@ -1,0 +1,20 @@
+﻿Basin,Basin_ID,region,Runoff_coef,BF_Index
+Navaluenga,1,IMP,0.37,0.24
+Matallana,2,IMP,0.47,0.19
+Villarejo de Montalban,3,IMP,0.14,0.24
+Peralejo de las Truchas,4,CRB,0.38,0.5
+Priego Escabas,5,CRB,0.37,0.54
+Santa Maria del Val,6,CRB,0.45,0.35
+Jabalera,7,DTH,0.09,0.34
+Huete,8,DTH,0.05,0.36
+Torote,9,DTH,0.06,0.34
+La Pueblanueva,10,DTH,0.06,0.3
+Ventosa,11,DTL,0.08,0.43
+La Peraleja,12,DTL,0.02,0.25
+Villasequilla de Yepes,13,DTL,0.02,0.23
+Valverde de los Arroyos,14,MIX,0.36,0.14
+Malpica,15,MIX,0.17,0.19
+Taravillas,16,MIX,0.19,0.48
+Romanones,17,MIX,0.06,0.29
+Priego Trabraque,18,MIX,0.03,0.36
+Bujalaro,19,MIX,0.11,0.42
